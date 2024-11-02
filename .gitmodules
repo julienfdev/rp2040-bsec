@@ -1,0 +1,6 @@
+[submodule "lib/bme68x"]
+	path = lib/bme68x
+	url = https://github.com/boschsensortec/BME68x_SensorAPI.git
+[submodule "lib/pico-i2c-device"]
+	path = lib/pico-i2c-device
+	url = https://github.com/julienfdev/pico-i2c-device.git
