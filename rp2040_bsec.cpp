@@ -1,5 +1,10 @@
 /**
- * Copyright (c) 2020 Bosch Sensortec GmbH. All rights reserved.
+ * Julien Ferand - Dokitek SARL
+ * Original copyright and licensing by Bosch Sensortec GmbH below
+ */
+
+/**
+* Copyright (c) 2021 Bosch Sensortec GmbH. All rights reserved.
  *
  * BSD-3-Clause
  *
@@ -30,9 +35,9 @@
  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- * @file	bsec.cpp
- * @date	27 May 2022
- * @version	1.4.1492
+ * @file	bsec2.cpp
+ * @date	18 July 2024
+ * @version	2.1.5
  *
  */
 
@@ -42,6 +47,7 @@
 // DEBUG
 
 #include "rp2040_bsec.h"
+#include "inc/bsec_interface.h"
 
 I2CDevice *Bsec::wireObj = nullptr;
 
@@ -56,7 +62,8 @@ Bsec::Bsec() {
 /**
  * @brief Function to initialize the BSEC library and the BME68x sensor
  */
-void Bsec::begin(bme68x_intf intf, bme68x_read_fptr_t read, bme68x_write_fptr_t write, bme68x_delay_us_fptr_t idleTask,
+void Bsec::begin(const bme68x_intf intf, const bme68x_read_fptr_t read, const bme68x_write_fptr_t write,
+                 const bme68x_delay_us_fptr_t idleTask,
                  void *intfPtr) {
     _bme68x.intf = intf;
     _bme68x.read = read;
@@ -72,7 +79,7 @@ void Bsec::begin(bme68x_intf intf, bme68x_read_fptr_t read, bme68x_write_fptr_t 
  * @brief Function to initialize the BSEC library and the BME68x sensor
  */
 void Bsec::begin(const uint8_t i2cAddr, I2CDevice &i2c) {
-    _bme68x.intf_ptr = (void *) (intptr_t) i2cAddr;
+    _bme68x.intf_ptr = reinterpret_cast<void *>(static_cast<intptr_t>(i2cAddr));
     _bme68x.intf = BME68X_I2C_INTF;
     _bme68x.read = Bsec::i2cRead;
     _bme68x.write = Bsec::i2cWrite;
@@ -84,7 +91,22 @@ void Bsec::begin(const uint8_t i2cAddr, I2CDevice &i2c) {
 }
 
 /**
- * @brief Common code for the begin function
+ * @brief Function to initialize the BSEC library and the BME68x sensor, with a user-defined delay function
+ */
+void Bsec::begin(const uint8_t i2cAddr, I2CDevice &i2c, const bme68x_delay_us_fptr_t idleTask) {
+    _bme68x.intf_ptr = reinterpret_cast<void *>(static_cast<intptr_t>(i2cAddr));
+    _bme68x.intf = BME68X_I2C_INTF;
+    _bme68x.read = Bsec::i2cRead;
+    _bme68x.write = Bsec::i2cWrite;
+    _bme68x.delay_us = idleTask;
+    _bme68x.amb_temp = 25;
+
+    Bsec::wireObj = &i2c;
+    beginCommon();
+}
+
+/**
+ * @brief Common code for the "begin" function
  */
 void Bsec::beginCommon() {
     zeroInputs();
@@ -100,7 +122,7 @@ void Bsec::beginCommon() {
 /**
  * @brief Function that sets the desired sensors and the sample rates
  */
-void Bsec::updateSubscription(bsec_virtual_sensor_t sensorList[], uint8_t nSensors, float sampleRate) {
+void Bsec::updateSubscription(const bsec_virtual_sensor_t *sensorList, const uint8_t nSensors, const float sampleRate) {
     bsec_sensor_configuration_t virtualSensors[BSEC_NUMBER_OUTPUTS],
             sensorSettings[BSEC_MAX_PHYSICAL_SENSOR];
     uint8_t nSensorSettings = BSEC_MAX_PHYSICAL_SENSOR;
@@ -117,18 +139,18 @@ void Bsec::updateSubscription(bsec_virtual_sensor_t sensorList[], uint8_t nSenso
  * @brief Callback from the user to trigger reading of data from the BME68x, process and store outputs
  */
 bool Bsec::run() {
-    bool newData = false;
+    bool newData{false};
     /* Check if the time has arrived to call do_steps() */
-    int64_t callTimeMs = getTimeMs();
 
-    if (callTimeMs >= nextCall) {
-        bsec_bme_settings_t bme68xSettings;
+    if (const int64_t callTimeMs{getTimeMs()}; callTimeMs >= nextCall) {
+        bsec_bme_settings_t bme68xSettings; // default settings
 
-        int64_t callTimeNs = callTimeMs * INT64_C(1000000);
+        const int64_t callTimeNs{callTimeMs * INT64_C(1000000)};
 
         bsecStatus = bsec_sensor_control(callTimeNs, &bme68xSettings);
-        if (bsecStatus < BSEC_OK)
+        if (bsecStatus < BSEC_OK) {
             return false;
+        }
 
         nextCall = bme68xSettings.next_call / INT64_C(1000000); // Convert from ns to ms
 
@@ -147,7 +169,7 @@ bool Bsec::run() {
  */
 void Bsec::getState(uint8_t *state) {
     uint8_t workBuffer[BSEC_MAX_STATE_BLOB_SIZE];
-    uint32_t n_serialized_state = BSEC_MAX_STATE_BLOB_SIZE;
+    uint32_t n_serialized_state{BSEC_MAX_STATE_BLOB_SIZE};
     bsecStatus = bsec_get_state(0, state, BSEC_MAX_STATE_BLOB_SIZE, workBuffer, BSEC_MAX_STATE_BLOB_SIZE,
                                 &n_serialized_state);
 }
@@ -155,7 +177,7 @@ void Bsec::getState(uint8_t *state) {
 /**
  * @brief Function to set the state of the algorithm from non-volatile memory
  */
-void Bsec::setState(uint8_t *state) {
+void Bsec::setState(const uint8_t *state) {
     uint8_t workBuffer[BSEC_MAX_STATE_BLOB_SIZE];
 
     bsecStatus = bsec_set_state(state, BSEC_MAX_STATE_BLOB_SIZE, workBuffer, BSEC_MAX_STATE_BLOB_SIZE);
@@ -164,10 +186,10 @@ void Bsec::setState(uint8_t *state) {
 /**
  * @brief Function to set the configuration of the algorithm from memory
  */
-void Bsec::setConfig(const uint8_t *state) {
+void Bsec::setConfig(const uint8_t *config) {
     uint8_t workBuffer[BSEC_MAX_PROPERTY_BLOB_SIZE];
 
-    bsecStatus = bsec_set_configuration(state, BSEC_MAX_PROPERTY_BLOB_SIZE, workBuffer, sizeof(workBuffer));
+    bsecStatus = bsec_set_configuration(config, BSEC_MAX_PROPERTY_BLOB_SIZE, workBuffer, sizeof(workBuffer));
 }
 
 /* Private functions */
@@ -182,13 +204,13 @@ void Bsec::getVersion() {
 /**
  * @brief Read data from the BME68x and process it
  */
-bool Bsec::readProcessData(int64_t currTimeNs, bsec_bme_settings_t bme68xSettings) {
+bool Bsec::readProcessData(const int64_t currTimeNs, const bsec_bme_settings_t &bme68xSettings) {
     bsec_input_t inputs[BSEC_MAX_PHYSICAL_SENSOR]; // Temperature, Pressure, Humidity & Gas Resistance
-    uint8_t nInputs = 0, nOutputs = 0;
+    uint8_t nInputs{0};
+    uint8_t nOutputs{0};
     nFields = 0;
 
-    if (bme68xSettings.process_data)
-      {
+    if (bme68xSettings.process_data) {
         bme68xStatus = bme68x_get_data(BME68X_FORCED_MODE, &_data, &nFields, &_bme68x);
         if (bme68xStatus != BME68X_OK) {
             return false;
@@ -269,6 +291,7 @@ bool Bsec::readProcessData(int64_t currTimeNs, bsec_bme_settings_t bme68xSetting
                         break;
                     case BSEC_OUTPUT_RAW_PRESSURE:
                         pressure = _outputs[i].signal;
+                        pressure *= 0.01f; // Converting to true hPa
                         break;
                     case BSEC_OUTPUT_RAW_HUMIDITY:
                         rawHumidity = _outputs[i].signal;
@@ -306,9 +329,8 @@ bool Bsec::readProcessData(int64_t currTimeNs, bsec_bme_settings_t bme68xSetting
 /**
  * @brief Set the BME68x sensor's configuration
  */
-int8_t Bsec::setBme68xConfig(bsec_bme_settings_t bme68xSettings) {
-    int8_t bme68xSts = BME68X_OK;
-    uint16_t meas_period;
+int8_t Bsec::setBme68xConfig(const bsec_bme_settings_t &bme68xSettings) {
+    int8_t bme68xSts{BME68X_OK};
     uint8_t current_op_mode;
 
     /* Check if a forced-mode measurement should be triggered now */
@@ -327,7 +349,7 @@ int8_t Bsec::setBme68xConfig(bsec_bme_settings_t bme68xSettings) {
 
         heatrConf.enable = bme68xSettings.run_gas;
         heatrConf.heatr_temp = bme68xSettings.heater_temperature;
-        heatrConf.heatr_dur = bme68xSettings.heating_duration;
+        heatrConf.heatr_dur = bme68xSettings.heater_duration;
 
         bme68xSts = bme68x_set_heatr_conf(BME68X_FORCED_MODE, &heatrConf, &_bme68x);
 
@@ -340,7 +362,8 @@ int8_t Bsec::setBme68xConfig(bsec_bme_settings_t bme68xSettings) {
         if (bme68xSts == BME68X_ERROR) {
             return bme68xSts;
         }
-        meas_period = bme68x_get_meas_dur(BME68X_FORCED_MODE, &conf, &_bme68x) + heatrConf.heatr_dur * 1000;
+        const uint16_t meas_period = bme68x_get_meas_dur(BME68X_FORCED_MODE, &conf, &_bme68x) + heatrConf.heatr_dur *
+                                     1000;
         /* Delay till the measurement is ready. Timestamp resolution in ms */
         delay_us((uint32_t) meas_period, _bme68x.intf_ptr);
     }
@@ -405,7 +428,7 @@ void Bsec::zeroInputs() {
  * @brief Function to calculate an int64_t timestamp in milliseconds
  */
 int64_t Bsec::getTimeMs() {
-    int64_t timeMs = to_ms_since_boot(get_absolute_time());
+    const int64_t timeMs{to_ms_since_boot(get_absolute_time())};
 
     if (lastTime > timeMs) {
         // An overflow occurred
@@ -414,41 +437,38 @@ int64_t Bsec::getTimeMs() {
 
     lastTime = timeMs;
 
-    return timeMs + ((int64_t) millisOverflowCounter << 32);
+    return timeMs + (static_cast<int64_t>(millisOverflowCounter) << 32);
 }
 
 /**
- @brief Task that delays for a us period of time
+ @brief Task that delays for µs period of time
  */
-void Bsec::delay_us(uint32_t period, void *intfPtr) {
-    (void) intfPtr;
-    // Wait for a period amount of ms
-    // The system may simply idle, sleep or even perform background tasks
+void Bsec::delay_us(const uint32_t period, void *intfPtr) {
     sleep_ms(period / 1000);
 }
 
 /**
  @brief Callback function for reading registers over I2C
  */
-int8_t Bsec::i2cRead(const uint8_t regAddr, uint8_t *regData, uint32_t length, void *intf_ptr) {
-    int8_t rslt{};
+int8_t Bsec::i2cRead(const uint8_t regAddr, uint8_t *regData, const uint32_t length, void *intf_ptr) {
+    int8_t result{};
     if (Bsec::wireObj) {
         Bsec::wireObj->read(regAddr, regData, length);
     } else {
-        rslt = -1;
+        result = -1;
     }
-    return rslt;
+    return result;
 }
 
 /**
  * @brief Callback function for writing registers over I2C
  */
-int8_t Bsec::i2cWrite(uint8_t regAddr, const uint8_t *regData, uint32_t length, void *intf_ptr) {
-    int8_t rslt = 0;
+int8_t Bsec::i2cWrite(const uint8_t regAddr, const uint8_t *regData, const uint32_t length, void *intf_ptr) {
+    int8_t result = 0;
     if (Bsec::wireObj) {
         Bsec::wireObj->write(regAddr, regData, length);
     } else {
-        rslt = -1;
+        result = -1;
     }
-    return rslt;
+    return result;
 }

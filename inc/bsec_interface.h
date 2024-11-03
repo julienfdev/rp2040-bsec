@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright (C) Bosch Sensortec GmbH. All Rights Reserved. Confidential.
  *
  * Disclaimer
@@ -58,11 +58,10 @@
  *
  * @file     bsec_interface.h  
  *
- * @brief
+ * @brief      
  * Contains the API for BSEC
  *
  */
-
 
 #ifndef __BSEC_INTERFACE_H__
 #define __BSEC_INTERFACE_H__
@@ -74,8 +73,9 @@
 #endif
 
 
- /*! @addtogroup bsec_interface BSEC C Interface
- *   @brief Interfaces of BSEC signal processing library
+ /*! @addtogroup bsec_interface BSEC Standard Interfaces
+ *   @brief Standard interfaces of BSEC signal processing library. 
+ * These interfaces supports in interfacing single BME68x sensor with the BSEC library.
  *
  * ### Interface usage
  * 
@@ -102,8 +102,8 @@
  * | Steps                                     | Function                         |
  * |-------------------------------------------|----------------------------------|
  * | Retrieve sensor settings to be used       | bsec_sensor_control()            |
- * | Configure sensor and trigger measurement  | [See BME680 API and example codes](https://github.com/BoschSensortec/BME68x-Sensor-API) |
- * | Read results from sensor                  | [See BME680 API and example codes](https://github.com/BoschSensortec/BME68x-Sensor-API) |
+ * | Configure sensor and trigger measurement  | [See BME68x API and example codes](https://github.com/BoschSensortec/BME68x-Sensor-API) |
+ * | Read results from sensor                  | [See BME68x API and example codes](https://github.com/BoschSensortec/BME68x-Sensor-API) |
  * | Perform signal processing                 | bsec_do_steps()                  |
  *
  * 
@@ -185,7 +185,7 @@ bsec_library_return_t bsec_init(void);
  *
  * Based on the requested virtual sensors outputs, BSEC will provide information about the required physical sensor input signals 
  * (see ::bsec_physical_sensor_t) with corresponding sample rates. This information is purely informational as bsec_sensor_control()
- * will ensure the sensor is operated in the required manner. To disable a virtual sensor, set the sample rate to #BSEC_SAMPLE_RATE_DISABLED.
+ * will ensure the sensor is operated in the required manner. To disable a virtual sensor, set the sample rate to ::BSEC_SAMPLE_RATE_DISABLED.
  *
  * The subscription update using bsec_update_subscription() is apart from the signal processing one of the the most 
  * important functions. It allows to enable the desired library outputs. The function determines which physical input 
@@ -204,7 +204,7 @@ bsec_library_return_t bsec_init(void);
  *  - Identifiers are unique values defined by the library, not from external
  *  - Sample rates must be provided as value of
  *     - An allowed sample rate for continuously sampled signals
- *     - 65535.0f (#BSEC_SAMPLE_RATE_DISABLED) to turn off outputs and identify disabled inputs
+ *     - 65535.0f (BSEC_SAMPLE_RATE_DISABLED) to turn off outputs and identify disabled inputs
  *
  * @note The same sensor identifiers are also used within the functions bsec_do_steps().
  *

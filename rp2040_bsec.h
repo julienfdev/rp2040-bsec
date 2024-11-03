@@ -1,5 +1,10 @@
 /**
- * Copyright (c) 2020 Bosch Sensortec GmbH. All rights reserved.
+* Julien Ferand - Dokitek SARL
+ * Original copyright and licensing by Bosch Sensortec GmbH below
+ */
+
+/**
+* Copyright (c) 2021 Bosch Sensortec GmbH. All rights reserved.
  *
  * BSD-3-Clause
  *
@@ -30,11 +35,12 @@
  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- * @file	bsec.h
- * @date	27 May 2022
- * @version	1.4.1492
+ * @file	bsec2.h
+ * @date	18 July 2024
+ * @version	2.1.5
  *
  */
+
 
 #ifndef RP2040_BSEC_CLASS_H
 #define RP2040_BSEC_CLASS_H
@@ -42,7 +48,6 @@
 /* Includes */
 #include "i2c_device.h"
 #include "inc/bsec_datatypes.h"
-#include "inc/bsec_interface.h"
 #include "lib/bme68x/bme68x.h"
 
 #define BME68X_ERROR            INT8_C(-1)
@@ -90,12 +95,20 @@ public:
 	void begin(uint8_t i2cAddr, I2CDevice &i2c);
 
 	/**
+	* @brief Function to initialize the BSEC library and the BME68x sensor
+	* @param i2cAddr	: I2C address
+	* @param i2c		: Pointer to the I2CDevice object
+	* @param idleTask	: Delay or Idle function
+	*/
+	void begin(uint8_t i2cAddr, I2CDevice &i2c, bme68x_delay_us_fptr_t idleTask);
+
+	/**
 	 * @brief Function that sets the desired sensors and the sample rates
 	 * @param sensorList	: The list of output sensors
 	 * @param nSensors		: Number of outputs requested
 	 * @param sampleRate	: The sample rate of requested sensors
 	 */
-	void updateSubscription(bsec_virtual_sensor_t sensorList[], uint8_t nSensors, float sampleRate = BSEC_SAMPLE_RATE_ULP);
+	void updateSubscription(const bsec_virtual_sensor_t *sensorList, uint8_t nSensors, float sampleRate = BSEC_SAMPLE_RATE_ULP);
 
 	/**
 	 * @brief Callback from the user to trigger reading of data from the BME68x, process and store outputs
@@ -113,7 +126,7 @@ public:
 	 * @brief Function to set the state of the algorithm from non-volatile memory
 	 * @param state			: Pointer to a memory location that contains the state
 	 */
-	void setState(uint8_t *state);
+	void setState(const uint8_t *state);
 
 	/**
 	 * @brief Function to set the configuration of the algorithm from memory
@@ -148,20 +161,20 @@ public:
 	* @param regAddr : Register address of the sensor
 	* @param regData : Pointer to the data to be written to the sensor
 	* @param length   : Length of the transfer
-	* @param intfPtr : Pointer to the interface descriptor
+	* @param intf_ptr : Pointer to the interface descriptor
 	* @return	Zero for success, non-zero otherwise
 	*/
-	static int8_t i2cRead(uint8_t regAddr, uint8_t *regData, uint32_t length, void *intfPtr);
+	static int8_t i2cRead(uint8_t regAddr, uint8_t *regData, uint32_t length, void *intf_ptr);
 
 	/**
 	* @brief Callback function for writing registers over I2C
 	* @param regAddr : Register address of the sensor
 	* @param regData : Pointer to the data to be written to the sensor
 	* @param length   : Length of the transfer
-	* @param intfPtr : Pointer to the interface descriptor
+	* @param intf_ptr : Pointer to the interface descriptor
 	* @return	Zero for success, non-zero otherwise
 	*/
-	static int8_t i2cWrite(uint8_t regAddr, const uint8_t *regData, uint32_t length, void *intfPtr);
+	static int8_t i2cWrite(uint8_t regAddr, const uint8_t *regData, uint32_t length, void *intf_ptr);
 
 private:
 	/* Private variables */
@@ -186,17 +199,17 @@ private:
 	 * @param bme68xSettings: BME68x sensor's settings
 	 * @return true if there are new outputs. false otherwise
 	 */
-	bool readProcessData(int64_t currTimeNs, bsec_bme_settings_t bme68xSettings);
+	bool readProcessData(int64_t currTimeNs, const bsec_bme_settings_t& bme68xSettings);
 
 	/**
 	 * @brief Set the BME68x sensor's configuration
 	 * @param bme68xSettings: Settings to configure the BME68x sensor
 	 * @return BME68x return code. BME68X_OK for success, failure otherwise
 	 */
-	int8_t setBme68xConfig(bsec_bme_settings_t bme68xSettings);
+	int8_t setBme68xConfig(const bsec_bme_settings_t& bme68xSettings);
 
 	/**
-	 * @brief Common code for the begin function
+	 * @brief Common code for the "begin" function
 	 */
 	void beginCommon();
 
