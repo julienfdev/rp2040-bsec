@@ -49,7 +49,7 @@
 #include "rp2040_bsec.h"
 #include "inc/bsec_interface.h"
 
-I2CDevice *Bsec::wireObj = nullptr;
+I2CInterface *Bsec::wireObj = nullptr;
 
 /**
  * @brief Constructor
@@ -78,7 +78,7 @@ void Bsec::begin(const bme68x_intf intf, const bme68x_read_fptr_t read, const bm
 /**
  * @brief Function to initialize the BSEC library and the BME68x sensor
  */
-void Bsec::begin(const uint8_t i2cAddr, I2CDevice &i2c) {
+void Bsec::begin(const uint8_t i2cAddr, I2CInterface &i2c_intf) {
     _bme68x.intf_ptr = reinterpret_cast<void *>(static_cast<intptr_t>(i2cAddr));
     _bme68x.intf = BME68X_I2C_INTF;
     _bme68x.read = Bsec::i2cRead;
@@ -86,14 +86,14 @@ void Bsec::begin(const uint8_t i2cAddr, I2CDevice &i2c) {
     _bme68x.delay_us = Bsec::delay_us;
     _bme68x.amb_temp = 25;
 
-    Bsec::wireObj = &i2c;
+    Bsec::wireObj = &i2c_intf;
     beginCommon();
 }
 
 /**
  * @brief Function to initialize the BSEC library and the BME68x sensor, with a user-defined delay function
  */
-void Bsec::begin(const uint8_t i2cAddr, I2CDevice &i2c, const bme68x_delay_us_fptr_t idleTask) {
+void Bsec::begin(const uint8_t i2cAddr, I2CInterface &i2c_intf, const bme68x_delay_us_fptr_t idleTask) {
     _bme68x.intf_ptr = reinterpret_cast<void *>(static_cast<intptr_t>(i2cAddr));
     _bme68x.intf = BME68X_I2C_INTF;
     _bme68x.read = Bsec::i2cRead;
@@ -101,7 +101,7 @@ void Bsec::begin(const uint8_t i2cAddr, I2CDevice &i2c, const bme68x_delay_us_fp
     _bme68x.delay_us = idleTask;
     _bme68x.amb_temp = 25;
 
-    Bsec::wireObj = &i2c;
+    Bsec::wireObj = &i2c_intf;
     beginCommon();
 }
 
@@ -451,9 +451,10 @@ void Bsec::delay_us(const uint32_t period, void *intfPtr) {
  @brief Callback function for reading registers over I2C
  */
 int8_t Bsec::i2cRead(const uint8_t regAddr, uint8_t *regData, const uint32_t length, void *intf_ptr) {
+    const uint8_t addr = reinterpret_cast<intptr_t>(intf_ptr);
     int8_t result{};
     if (Bsec::wireObj) {
-        Bsec::wireObj->read(regAddr, regData, length);
+        Bsec::wireObj->read(addr, regAddr, regData, length);
     } else {
         result = -1;
     }
@@ -465,8 +466,9 @@ int8_t Bsec::i2cRead(const uint8_t regAddr, uint8_t *regData, const uint32_t len
  */
 int8_t Bsec::i2cWrite(const uint8_t regAddr, const uint8_t *regData, const uint32_t length, void *intf_ptr) {
     int8_t result = 0;
+    const uint8_t addr = reinterpret_cast<intptr_t>(intf_ptr);
     if (Bsec::wireObj) {
-        Bsec::wireObj->write(regAddr, regData, length);
+        Bsec::wireObj->write(addr, regAddr, regData, length);
     } else {
         result = -1;
     }

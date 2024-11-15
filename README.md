@@ -38,7 +38,7 @@ target_include_directories(your_project PRIVATE lib/rp2040-bsec)
 
 ### First Steps
 
-1. **Setup I2C**: Make sure your RP2040 board is connected to the BME68x sensor via I2C. The library currently supports I2C communication exclusively. NB: If you're using an RTOS, you can provide your own non-blocking delay function in the BSec constructor.
+1. **Setup I2C**: Make sure your RP2040 board is connected to the BME68x sensor via I2C. The library currently supports I2C communication exclusively. Please use the provided I2CInterface class. NB: If you're using an RTOS, you can provide your own non-blocking delay function in the BSec constructor.
 2. **Initialization**: Initialize the BSEC library in your code by creating an instance of the `Bsec` class and configuring the sensor and sampling parameters. (see original .ino files for now, examples to be added to the project)
 3. **Subscription Configuration**: Configure which data outputs you need and their sample rates through the `updateSubscription` method. It must be correlated with the config file you use.
 4. **Running the Library**: Call the `run` method to obtain sensor data whenever available.
@@ -46,4 +46,3 @@ target_include_directories(your_project PRIVATE lib/rp2040-bsec)
 ## Known Limitations
 
 - **I2C Only**: This library supports I2C communication only; SPI is currently not supported.
-- **Single Device Support**: Only one BME68x sensor can be used at a time. Multi-device support on a single i2c interface is planned for future updates.

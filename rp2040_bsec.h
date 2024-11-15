@@ -66,7 +66,7 @@ public:
 	      staticIaq, co2Equivalent, breathVocEquivalent, compGasValue, gasPercentage;
 	uint8_t iaqAccuracy, staticIaqAccuracy, co2Accuracy, breathVocAccuracy, compGasAccuracy, gasPercentageAccuracy;
 	int64_t outputTimestamp;	// Timestamp in ms of the output
-	static I2CDevice *wireObj;
+	static I2CInterface *wireObj;
 	bme68x_conf conf;
 	bme68x_heatr_conf heatrConf;
 
@@ -90,17 +90,17 @@ public:
 	/**
 	 * @brief Function to initialize the BSEC library and the BME68x sensor
 	 * @param i2cAddr	: I2C address
-	 * @param i2c		: Pointer to the I2CDevice object
+	 * @param i2c_intf		: Pointer to the I2CInterface object
 	 */
-	void begin(uint8_t i2cAddr, I2CDevice &i2c);
+	void begin(uint8_t i2cAddr, I2CInterface &i2c_intf);
 
 	/**
 	* @brief Function to initialize the BSEC library and the BME68x sensor
 	* @param i2cAddr	: I2C address
-	* @param i2c		: Pointer to the I2CDevice object
+	* @param i2c_intf		: Pointer to the I2CInterface object
 	* @param idleTask	: Delay or Idle function
 	*/
-	void begin(uint8_t i2cAddr, I2CDevice &i2c, bme68x_delay_us_fptr_t idleTask);
+	void begin(uint8_t i2cAddr, I2CInterface &i2c_intf, bme68x_delay_us_fptr_t idleTask);
 
 	/**
 	 * @brief Function that sets the desired sensors and the sample rates
